@@ -3,24 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cyber Runner Classic</title>
+    <title>Cyber Runner: Final Restoration</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 20px; left: 20px; color: #00ffcc; z-index: 10; pointer-events: none; }
-        .stat { font-size: 22px; font-weight: bold; text-shadow: 2px 2px #000; margin-bottom: 10px; }
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; z-index: 100; }
-        .menu-card { background: #1a1a1a; padding: 30px; border-radius: 25px; border: 3px solid #00ffcc; text-align: center; width: 300px; box-shadow: 0 0 20px #00ffcc; }
-        h1 { margin-top: 0; color: #00ffcc; letter-spacing: 2px; }
-        button { width: 100%; padding: 15px; margin: 10px 0; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
+        #ui { position: absolute; top: 15px; left: 15px; color: #00ffcc; z-index: 50; pointer-events: none; }
+        .stat { font-size: 18px; font-weight: bold; text-shadow: 2px 2px #000; margin-bottom: 5px; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; z-index: 100; }
+        .menu-card { background: #111; padding: 25px; border-radius: 20px; border: 2px solid #00ffcc; text-align: center; width: 280px; box-shadow: 0 0 20px #00ffcc; }
+        button { width: 100%; padding: 12px; margin: 8px 0; font-size: 16px; font-weight: bold; border-radius: 50px; border: none; cursor: pointer; text-transform: uppercase; }
+        button:disabled { opacity: 0.3; cursor: default; }
         .btn-play { background: #00ffcc; color: #000; }
         .btn-menu { background: #333; color: #fff; }
-        .shop-item { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 12px; margin-bottom: 10px; border-radius: 15px; }
-        .buy-btn { width: auto; padding: 8px 15px; font-size: 14px; background: #ffcc00; color: #000; border-radius: 8px; }
-        .buy-btn:disabled { background: #444; color: #888; }
-        .char-item { padding: 15px; background: #222; margin: 10px 0; border-radius: 15px; border: 2px solid transparent; cursor: pointer; }
-        .char-item.selected { border-color: #00ffcc; background: #003322; }
-        #skateTimer { position: absolute; bottom: 50px; width: 100%; text-align: center; color: #ffcc00; font-weight: bold; font-size: 24px; display: none; z-index: 50; text-shadow: 2px 2px #000; }
+        .item-row { padding: 10px; background: #222; margin: 5px 0; border-radius: 10px; cursor: pointer; border: 2px solid transparent; }
+        .item-row.selected { border-color: #00ffcc; background: #003322; }
+        #skateTimer { position: absolute; bottom: 40px; width: 100%; text-align: center; color: #ffcc00; font-weight: bold; display: none; font-size: 20px; z-index: 60; }
     </style>
 </head>
 <body>
@@ -31,12 +28,33 @@
         <div class="stat">СЧЕТ: <span id="scoreVal">0</span></div>
     </div>
 
-    <div id="screen-main" class="overlay">
+    <div id="screen-auth" class="overlay">
         <div class="menu-card">
-            <h1>CYBER RUN</h1>
+            <h1 style="color:#00ffcc;">CYBER RUN</h1>
+            <button class="btn-play" onclick="auth('tg')">ВХОД ЧЕРЕЗ TELEGRAM</button>
+            <button class="btn-menu" onclick="auth('guest')">ИГРАТЬ КАК ГОСТЬ</button>
+        </div>
+    </div>
+
+    <div id="screen-main" class="overlay" style="display:none;">
+        <div class="menu-card">
+            <h1 style="color:#00ffcc; margin-bottom:15px;">CYBER RUN</h1>
             <button class="btn-play" onclick="startGame()">ИГРАТЬ</button>
+            <button class="btn-menu" onclick="showScreen('screen-locs')">ЛОКАЦИИ</button>
             <button class="btn-menu" onclick="showScreen('screen-shop')">МАГАЗИН</button>
-            <button class="btn-menu" onclick="openCharMenu()">ПЕРСОНАЖИ</button>
+            <button class="btn-menu" onclick="openCharMenu()">ГЕРОИ</button>
+        </div>
+    </div>
+
+    <div id="screen-locs" class="overlay" style="display:none;">
+        <div class="menu-card">
+            <h2>ЛОКАЦИИ</h2>
+            <div id="loc-list">
+                <div class="item-row" id="loc-cyber" onclick="selectLoc('cyber')">НЕОНОВЫЙ ГОРОД</div>
+                <div class="item-row" id="loc-forest" onclick="selectLoc('forest')">ДРЕМУЧИЙ ЛЕС</div>
+                <div class="item-row" id="loc-winter" onclick="selectLoc('winter')">ЛЕДЯНОЙ ПИК</div>
+            </div>
+            <button class="btn-menu" style="margin-top:15px;" onclick="showScreen('screen-main')">НАЗАД</button>
         </div>
     </div>
 
@@ -44,9 +62,12 @@
         <div class="menu-card">
             <h2>МАГАЗИН</h2>
             <div class="stat" style="color:#ffcc00;">БАЛАНС: <span id="shopCoinVal">0</span></div>
-            <div class="shop-item"><span>СКЕЙТ (1$)</span><button class="buy-btn" onclick="buySkate()">+1</button></div>
-            <div class="shop-item"><span>ДРОИД (5$)</span><button class="buy-btn" id="b-droid" onclick="buyChar('droid', 5)">КУПИТЬ</button></div>
-            <div class="shop-item"><span>СПАЙК (10$)</span><button class="buy-btn" id="b-spike" onclick="buyChar('spike', 10)">КУПИТЬ</button></div>
+            <button class="btn-menu" onclick="buySkate()">КУПИТЬ СКЕЙТ (1$)</button>
+            <button class="btn-menu" id="b-droid" onclick="buyChar('droid', 5)">ДРОИД (5$)</button>
+            <button class="btn-menu" id="b-spike" onclick="buyChar('spike', 10)">СПАЙК (10$)</button>
+            <button class="btn-menu" id="b-phantom" onclick="buyChar('phantom', 15)">ФАНТОМ (15$)</button>
+            <button class="btn-menu" id="b-yeti" onclick="buyChar('yeti', 20)">ЙЕТИ (20$)</button>
+            <button class="btn-menu" id="b-spirit" onclick="buyChar('spirit', 25)">ДУХ ЛЕСА (25$)</button>
             <button class="btn-menu" onclick="showScreen('screen-main')">НАЗАД</button>
         </div>
     </div>
@@ -68,83 +89,172 @@
     <script type="module">
         import * as THREE from 'three';
 
-        let data = { coins: 0, skates: 0, unlocked: { robot: true, droid: false, spike: false }, selected: 'robot' };
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let data = { 
+            coins: 0, skates: 0, 
+            unlocked: { robot: true, droid: false, spike: false, phantom: false, yeti: false, spirit: false }, 
+            selected: 'robot', location: 'cyber', isAuth: false 
+        };
+
         let isPlaying = false, score = 0, speed = 0.5, currentLane = 1;
         let yVel = 0, isJumping = false, skateActive = false, skateTime = 0;
-        let lastSpawn = 0, lastTap = 0, obstacles = [], coins = [];
+        let lastSpawn = 0, lastTreeSpawn = 0, lastTap = 0, obstacles = [], coins = [], scenery = [], snowflakes = [];
+        let targetRotation = 0, currentRotation = 0;
 
-        // Сцена
         const scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x000000, 15, 90);
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 6, 11); camera.lookAt(0, 2, 0);
+        camera.position.set(0, 7, 12); camera.lookAt(0, 2, 0);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
-        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 
-        // Персонажи
-        const playerGroup = new THREE.Group();
-        const models = { robot: new THREE.Group(), droid: new THREE.Group(), spike: new THREE.Group() };
-        playerGroup.add(models.robot, models.droid, models.spike);
-        scene.add(playerGroup);
-
-        const skateMesh = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.15, 2.8), new THREE.MeshStandardMaterial({color: 0x00ffcc, emissive: 0x00ffcc}));
-        skateMesh.position.y = 0.1; skateMesh.visible = false;
-        playerGroup.add(skateMesh);
+        const ambLight = new THREE.AmbientLight(0xffffff, 1.2); scene.add(ambLight);
+        const worldGroup = new THREE.Group(); scene.add(worldGroup);
+        const playerGroup = new THREE.Group(); scene.add(playerGroup);
+        
+        const models = { robot: new THREE.Group(), droid: new THREE.Group(), spike: new THREE.Group(), phantom: new THREE.Group(), yeti: new THREE.Group(), spirit: new THREE.Group() };
+        const skateMesh = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 2.5), new THREE.MeshStandardMaterial({color: 0x00ffcc, emissive: 0x00ffcc}));
+        skateMesh.visible = false;
+        playerGroup.add(models.robot, models.droid, models.spike, models.phantom, models.yeti, models.spirit, skateMesh);
 
         function buildModels() {
-            const metal = new THREE.MeshStandardMaterial({color: 0x888888});
-            const green = new THREE.MeshStandardMaterial({color: 0x2d5a27});
+            const mat = (c) => new THREE.MeshStandardMaterial({color: c, roughness: 0.6});
+            const box = (w,h,d,x,y,z,c) => {
+                const b = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat(c));
+                b.position.set(x,y,z); return b;
+            };
 
-            // Robot
-            const rBody = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1, 0.5), metal); rBody.position.y = 1.3;
-            const rHead = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.4), new THREE.MeshStandardMaterial({color:0x00ffcc})); rHead.position.y = 2.1;
-            const rLL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.3), metal); rLL.position.set(-0.25, 0.4, 0);
-            const rLR = rLL.clone(); rLR.position.x = 0.25;
-            const rAL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.7, 0.2), metal); rAL.position.set(-0.55, 1.3, 0);
-            const rAR = rAL.clone(); rAR.position.x = 0.55;
-            models.robot.add(rBody, rHead, rLL, rLR, rAL, rAR);
+            // 1. РОБОТ (Cyber)
+            models.robot.add(box(0.7, 0.9, 0.5, 0, 1.3, 0, 0x777777)); // Торс
+            models.robot.add(box(0.5, 0.4, 0.4, 0, 2.0, 0, 0x00ffcc)); // Голова
+            models.robot.add(box(0.15, 0.7, 0.15, -0.45, 1.2, 0, 0x555555)); // Руки
+            models.robot.add(box(0.15, 0.7, 0.15, 0.45, 1.2, 0, 0x555555));
+            models.robot.add(box(0.2, 0.6, 0.2, -0.2, 0.4, 0, 0x333333)); // Ноги
+            models.robot.add(box(0.2, 0.6, 0.2, 0.2, 0.4, 0, 0x333333));
 
-            // Droid
-            const dBody = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshStandardMaterial({color:0x222222, emissive: 0x00ffff}));
-            dBody.position.y = 1.1;
-            models.droid.add(dBody);
+            // 2. ДРОИД (Spherical)
+            const dBody = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), mat(0x222222));
+            dBody.position.y = 1.2; models.droid.add(dBody);
+            models.droid.add(box(0.1, 0.5, 0.1, 0, 1.8, 0, 0xff0000)); // Антенна
 
-            // Spike
-            const sBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.5, 0.8), green); sBody.position.y = 1.1;
-            const sLL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.6, 0.25), green); sLL.position.set(-0.25, 0.3, 0);
-            const sLR = sLL.clone(); sLR.position.x = 0.25;
-            const sAL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 0.2), green); sAL.position.set(-0.6, 1.2, 0); sAL.rotation.z = 0.4;
-            const sAR = sAL.clone(); sAR.position.x = 0.6; sAR.rotation.z = -0.4;
-            models.spike.add(sBody, sLL, sLR, sAL, sAR);
+            // 3. СПАЙК (Brawl Style)
+            const spikeBody = new THREE.Mesh(new THREE.CapsuleGeometry(0.45, 0.7, 4, 8), mat(0x4CAF50));
+            spikeBody.position.y = 1.1;
+            models.spike.add(spikeBody);
+            models.spike.add(box(0.8, 0.4, 0.5, 0, 1.0, 0, 0x9C27B0)); // Жилетка
+            models.spike.add(box(0.15, 0.5, 0.15, -0.5, 1.2, 0, 0x4CAF50)); // Руки
+            models.spike.add(box(0.15, 0.5, 0.15, 0.5, 1.2, 0, 0x4CAF50));
+            models.spike.add(box(0.2, 0.4, 0.2, -0.2, 0.3, 0, 0x4CAF50)); // Ноги
+            models.spike.add(box(0.2, 0.4, 0.2, 0.2, 0.3, 0, 0x4CAF50));
+
+            // 4. ФАНТОМ (Ninja)
+            models.phantom.add(box(0.5, 1.1, 0.3, 0, 1.2, 0, 0x111111)); 
+            models.phantom.add(box(0.4, 0.4, 0.35, 0, 1.8, 0, 0x111111)); // Капюшон
+            const cloak = box(0.6, 1.3, 0.05, 0, 1.1, -0.2, 0x330044); // Плащ
+            cloak.rotation.x = 0.1; models.phantom.add(cloak);
+
+            // 5. ЙЕТИ (Snow Monster)
+            models.yeti.add(box(1.1, 1.1, 0.9, 0, 1.2, 0, 0xffffff)); // Тело
+            models.yeti.add(box(0.8, 0.6, 0.7, 0, 1.9, 0, 0xeeeeee)); // Голова
+            models.yeti.add(box(0.35, 0.9, 0.35, -0.6, 1.2, 0, 0xffffff)); // Руки
+            models.yeti.add(box(0.35, 0.9, 0.35, 0.6, 1.2, 0, 0xffffff));
+
+            // 6. ДУХ ЛЕСА (Ent)
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.5), mat(0x5D4037));
+            trunk.position.y = 1.0; models.spirit.add(trunk);
+            const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7), mat(0x2E7D32));
+            foliage.position.y = 2.0; models.spirit.add(foliage);
         }
 
-        const road = new THREE.GridHelper(200, 40, 0x00ffcc, 0x002222);
-        scene.add(road);
+        const grid = new THREE.GridHelper(200, 40, 0x00ffcc, 0x002222);
+        const forestFloor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({color: 0x1a3300}));
+        const winterFloor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({color: 0xffffff}));
+        forestFloor.rotation.x = winterFloor.rotation.x = -Math.PI/2;
+        worldGroup.add(grid, forestFloor, winterFloor);
+
+        function createSnow() {
+            for(let i=0; i<150; i++) {
+                const s = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({color: 0xffffff}));
+                s.position.set(Math.random()*40-20, Math.random()*20, Math.random()*100-50);
+                scene.add(s); snowflakes.push(s);
+            }
+        }
+
+        window.auth = (type) => {
+            if(type === 'tg' && tg.initDataUnsafe.user) {
+                data.isAuth = true;
+                if(tg.CloudStorage) {
+                    tg.CloudStorage.getItem('run_v_final', (err, val) => {
+                        if(!err && val) data = JSON.parse(val);
+                        loadDone();
+                    });
+                } else loadDone();
+            } else loadDone();
+        }
+
+        function loadDone() {
+            const saved = localStorage.getItem('run_v_local');
+            if(saved && !data.isAuth) data = JSON.parse(saved);
+            updateUI(); selectLoc(data.location); showScreen('screen-main');
+        }
+
+        window.save = () => {
+            const str = JSON.stringify(data);
+            localStorage.setItem('run_v_local', str);
+            if(data.isAuth && tg.CloudStorage) tg.CloudStorage.setItem('run_v_final', str);
+            updateUI();
+        }
+
+        function applyLocation() {
+            grid.visible = (data.location === 'cyber');
+            forestFloor.visible = (data.location === 'forest');
+            winterFloor.visible = (data.location === 'winter');
+            scene.fog = new THREE.Fog(data.location === 'winter' ? 0xffffff : (data.location === 'forest' ? 0x0b1a00 : 0x000000), 10, 80);
+            snowflakes.forEach(s => s.visible = (data.location === 'winter'));
+            scenery.forEach(s => worldGroup.remove(s)); scenery = [];
+        }
+
+        function createTree() {
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.4, 4), mat(0x3e2723));
+            const leaves = new THREE.Mesh(new THREE.SphereGeometry(1.5, 8, 8), mat(data.location==='winter'?0xffffff:0x2e7d32));
+            leaves.position.y = 2.5; tree.add(trunk, leaves);
+            const side = Math.random() > 0.5 ? 1 : -1;
+            tree.position.set(side * (8 + Math.random() * 10), 2, -100);
+            worldGroup.add(tree); scenery.push(tree);
+        }
+        function mat(c) { return new THREE.MeshStandardMaterial({color:c}); }
 
         function spawn() {
-            if (Date.now() - lastSpawn < 600 / speed) return;
+            if (Date.now() - lastSpawn < 700 / speed) {
+                if(data.location !== 'cyber' && Date.now() - lastTreeSpawn > 350 / speed) {
+                    createTree(); lastTreeSpawn = Date.now();
+                }
+                return;
+            }
             lastSpawn = Date.now();
             const lane = [-3.5, 0, 3.5][Math.floor(Math.random()*3)];
             const r = Math.random();
 
-            if (r < 0.3) {
+            if (r < 0.25) { 
+                const b = new THREE.Mesh(new THREE.SphereGeometry(0.7), mat(0x444444));
+                b.position.set(lane, 0.7, -100); b.isBomb = true; worldGroup.add(b); obstacles.push(b);
+            } else if (r < 0.5) { 
                 const g = new THREE.Group();
-                const ramp = new THREE.Mesh(new THREE.BoxGeometry(3, 1, 6), new THREE.MeshStandardMaterial({color: 0x0066ff}));
-                ramp.rotation.x = -0.2; ramp.position.set(0, 0.5, 0);
-                const plat = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.4, 10), new THREE.MeshStandardMaterial({color: 0x00ffff}));
-                plat.position.set(0, 2.5, -8); plat.isPlatform = true;
-                g.add(ramp, plat); g.position.set(lane, 0, -100);
-                scene.add(g); obstacles.push(g);
-            } else if (r < 0.7) {
-                const b = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0044}));
-                b.position.set(lane, 1, -100); b.isHurt = true;
-                scene.add(b); obstacles.push(b);
-            } else {
-                const c = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.1), new THREE.MeshStandardMaterial({color: 0xffff00}));
-                c.position.set(lane, 1.2, -100); scene.add(c); coins.push(c);
+                const ramp = new THREE.Mesh(new THREE.BoxGeometry(3, 1, 7), mat(0x0066ff));
+                ramp.rotation.x = -0.2; ramp.position.y = 0.5;
+                const plat = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.4, 11), mat(0x00ffff));
+                plat.position.set(0, 2.5, -9); plat.isPlatform = true;
+                g.add(ramp, plat); g.position.set(lane, 0, -100); worldGroup.add(g); obstacles.push(g);
+            } else if (r < 0.8) { 
+                const b = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.8, 1), mat(0xff0044));
+                b.position.set(lane, 0.9, -100); b.isHurt = true; worldGroup.add(b); obstacles.push(b);
+            } else { 
+                const c = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.1), mat(0xffff00));
+                c.position.set(lane, 1.2, -100); worldGroup.add(c); coins.push(c);
             }
         }
 
@@ -153,108 +263,100 @@
             if (!isPlaying) { renderer.render(scene, camera); return; }
 
             speed += 0.0001;
-            let moveSpeed = skateActive ? speed * 1.4 : speed;
-            score++;
-            document.getElementById('scoreVal').innerText = Math.floor(score/10);
-            road.position.z += moveSpeed; if(road.position.z > 5) road.position.z = 0;
+            let moveSpeed = skateActive ? speed * 1.3 : speed;
+            score++; document.getElementById('scoreVal').innerText = Math.floor(score/10);
 
-            // Анимация бега
-            const t = Date.now() * 0.01;
-            if(data.selected !== 'droid') {
-                const m = models[data.selected];
-                m.children[2].rotation.x = Math.sin(t*1.5)*0.8;
-                m.children[3].rotation.x = -Math.sin(t*1.5)*0.8;
-                if(m.children[4]) m.children[4].rotation.x = -Math.sin(t*1.5)*0.5;
-                if(m.children[5]) m.children[5].rotation.x = Math.sin(t*1.5)*0.5;
+            // ПОВОРОТ КАМЕРЫ
+            if (score % 450 === 0) targetRotation = (Math.random() - 0.5) * 0.4;
+            currentRotation = THREE.MathUtils.lerp(currentRotation, targetRotation, 0.01);
+            worldGroup.rotation.y = currentRotation;
+            camera.position.x = currentRotation * 10;
+            camera.lookAt(0, 2, 0);
+
+            if(data.location === 'winter') {
+                snowflakes.forEach(s => {
+                    s.position.y -= 0.1; s.position.z += speed;
+                    if(s.position.y < 0) s.position.y = 20;
+                    if(s.position.z > 20) s.position.z = -80;
+                });
             }
 
             playerGroup.position.x = THREE.MathUtils.lerp(playerGroup.position.x, [-3.5, 0, 3.5][currentLane], 0.15);
-            
+            scenery.forEach((s, i) => { s.position.z += moveSpeed; if(s.position.z > 20) { worldGroup.remove(s); scenery.splice(i, 1); } });
+
             let groundY = 0;
             const pBox = new THREE.Box3().setFromObject(playerGroup);
 
             obstacles.forEach((obj, i) => {
-                obj.position.z += moveSpeed;
-                const oBox = new THREE.Box3().setFromObject(obj);
-
-                if (pBox.intersectsBox(oBox)) {
+                obj.position.z += (obj.isBomb ? moveSpeed * 2.1 : moveSpeed);
+                if (pBox.intersectsBox(new THREE.Box3().setFromObject(obj))) {
                     let onTop = false;
-                    obj.children.forEach(c => {
-                        if(c.isPlatform && playerGroup.position.y > 1.5) { groundY = 2.8; onTop = true; }
-                    });
-
-                    if((obj.isHurt || !onTop && obj.children.length > 1) && !onTop) {
-                        if (skateActive) {
-                            skateActive = false; skateMesh.visible = false;
-                            document.getElementById('skateTimer').style.display = 'none';
-                            scene.remove(obj); obstacles.splice(i, 1);
-                        } else {
-                            isPlaying = false; showScreen('screen-main');
+                    obj.children.forEach(c => { if(c.isPlatform && playerGroup.position.y > 1.5) { groundY = 2.8; onTop = true; } });
+                    if(!onTop) {
+                        if(skateActive) {
+                            skateActive = false; skateMesh.visible = false; document.getElementById('skateTimer').style.display = 'none';
+                            worldGroup.remove(obj); obstacles.splice(i, 1);
+                        } else { 
+                            if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+                            isPlaying = false; showScreen('screen-main'); 
                         }
                     }
                 }
-                if (obj.position.z > 20) { scene.remove(obj); obstacles.splice(i, 1); }
+                if (obj.position.z > 20) { worldGroup.remove(obj); obstacles.splice(i, 1); }
             });
 
             coins.forEach((c, i) => {
-                c.position.z += moveSpeed; c.rotation.y += 0.05;
+                c.position.z += moveSpeed;
                 if (pBox.intersectsBox(new THREE.Box3().setFromObject(c))) {
-                    data.coins++; save(); scene.remove(c); coins.splice(i, 1);
-                } else if (c.position.z > 20) { scene.remove(c); coins.splice(i, 1); }
+                    data.coins++; save(); worldGroup.remove(c); coins.splice(i, 1);
+                    if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                } else if (c.position.z > 20) { worldGroup.remove(c); coins.splice(i, 1); }
             });
 
             playerGroup.position.y += yVel;
-            if (playerGroup.position.y > groundY) yVel -= 0.015;
-            else { playerGroup.position.y = groundY; yVel = 0; isJumping = false; }
+            if (playerGroup.position.y > groundY) yVel -= 0.015; else { playerGroup.position.y = groundY; yVel = 0; isJumping = false; }
 
             if (skateActive) {
-                skateTime -= 0.016;
-                document.getElementById('skateSec').innerText = Math.ceil(skateTime);
+                skateTime -= 0.016; document.getElementById('skateSec').innerText = Math.ceil(skateTime);
                 if (skateTime <= 0) { skateActive = false; skateMesh.visible = false; document.getElementById('skateTimer').style.display = 'none'; }
             }
-
-            spawn();
-            renderer.render(scene, camera);
+            spawn(); renderer.render(scene, camera);
         }
 
-        window.save = () => { localStorage.setItem('cyb_run_orig', JSON.stringify(data)); updateUI(); }
-        window.load = () => { const s = localStorage.getItem('cyb_run_orig'); if(s) data = JSON.parse(s); updateUI(); }
-        window.updateUI = () => {
-            document.getElementById('coinVal').innerText = data.coins;
-            document.getElementById('shopCoinVal').innerText = data.coins;
-            document.getElementById('skateVal').innerText = data.skates;
-            document.getElementById('b-droid').innerText = data.unlocked.droid ? "КУПЛЕНО" : "КУПИТЬ";
-            document.getElementById('b-spike').innerText = data.unlocked.spike ? "КУПЛЕНО" : "КУПИТЬ";
-        }
-        window.showScreen = (id) => {
-            document.querySelectorAll('.overlay').forEach(s => s.style.display = 'none');
-            if(id !== 'none') document.getElementById(id).style.display = 'flex';
-        }
+        window.showScreen = (id) => { document.querySelectorAll('.overlay').forEach(s => s.style.display = 'none'); if(id !== 'none') document.getElementById(id).style.display = 'flex'; }
+        window.selectLoc = (type) => { data.location = type; document.querySelectorAll('.item-row').forEach(el => el.classList.remove('selected')); const el = document.getElementById('loc-' + type); if(el) el.classList.add('selected'); save(); }
         window.buySkate = () => { if(data.coins >= 1) { data.coins--; data.skates++; save(); } }
         window.buyChar = (id, cost) => { if(data.coins >= cost && !data.unlocked[id]) { data.coins -= cost; data.unlocked[id] = true; save(); } }
         window.openCharMenu = () => {
             const list = document.getElementById('char-list'); list.innerHTML = "";
-            Object.keys(data.unlocked).forEach(k => {
-                if(data.unlocked[k]) {
-                    const d = document.createElement('div');
-                    d.className = `char-item ${data.selected === k ? 'selected' : ''}`;
-                    d.innerText = k.toUpperCase();
-                    d.onclick = () => { data.selected = k; save(); openCharMenu(); };
-                    list.appendChild(d);
-                }
-            });
+            Object.keys(data.unlocked).forEach(k => { if(data.unlocked[k]) {
+                const item = document.createElement('div');
+                item.className = `item-row ${data.selected === k ? 'selected' : ''}`;
+                item.innerText = k.toUpperCase();
+                item.onclick = () => { data.selected = k; save(); openCharMenu(); };
+                list.appendChild(item);
+            }});
             showScreen('screen-chars');
         }
-        window.startGame = () => {
-            showScreen('none'); isPlaying = true;
-            score = 0; speed = 0.5; currentLane = 1; skateActive = false; skateMesh.visible = false;
-            playerGroup.position.set(0,0,0);
-            Object.keys(models).forEach(k => models[k].visible = (k === data.selected));
-            obstacles.forEach(o => scene.remove(o)); obstacles = [];
-            coins.forEach(c => scene.remove(c)); coins = [];
+
+        window.updateUI = () => {
+            document.getElementById('coinVal').innerText = data.coins;
+            document.getElementById('shopCoinVal').innerText = data.coins;
+            document.getElementById('skateVal').innerText = data.skates;
+            ['droid','spike','phantom','yeti','spirit'].forEach(id => {
+                const b = document.getElementById('b-'+id); if(b) b.disabled = data.unlocked[id];
+            });
         }
 
-        let tX, tY;
+        window.startGame = () => {
+            showScreen('none'); applyLocation();
+            isPlaying = true; score = 0; speed = 0.5; currentLane = 1; skateActive = false; skateMesh.visible = false;
+            playerGroup.position.set(0,0,0); worldGroup.rotation.y = 0; currentRotation = 0; targetRotation = 0;
+            Object.keys(models).forEach(k => models[k].visible = (k === data.selected));
+            obstacles.forEach(o => worldGroup.remove(o)); obstacles = [];
+            coins.forEach(c => worldGroup.remove(c)); coins = [];
+        }
+
         window.ontouchstart = e => {
             const now = Date.now();
             if (now - lastTap < 300 && isPlaying && data.skates > 0 && !skateActive) {
@@ -263,6 +365,7 @@
             }
             lastTap = now; tX = e.touches[0].clientX; tY = e.touches[0].clientY;
         }
+        let tX, tY;
         window.ontouchend = e => {
             if(!isPlaying) return;
             const dx = e.changedTouches[0].clientX - tX, dy = e.changedTouches[0].clientY - tY;
@@ -272,7 +375,7 @@
             } else if(dy < -30 && !isJumping) { yVel = 0.3; isJumping = true; }
         }
 
-        load(); buildModels(); animate();
+        buildModels(); createSnow(); animate();
     </script>
 </body>
 </html>
